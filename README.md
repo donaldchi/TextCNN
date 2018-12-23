@@ -48,6 +48,15 @@ python pred.py --checkpoint_number 1545587316
 
 - [日本語 Wikipedia エンティティベクトル](http://www.cl.ecei.tohoku.ac.jp/~m-suzuki/jawiki_vector/)
 
+# 実験結果
+
+|パラメータ <br> 組み合わせ|Accuracy(Train)|Accuracy(Test)|
+|---|---:|---:|
+|single channel, <br> random init|0.94|0.71|
+|single channel, <br> pretrained init|0.74|0.72|
+|multi channel, <br> pretrained & <br> random init|0.73|0.71|
+|multi channel, <br> pretrained & <br> pretrained init|0.82|0.74|
+
 # Reference
 - [Implementing a CNN for Text Classification in TensorFlow](http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/)
 - [Convolutional Neural Networks for Sentence Classification ](https://arxiv.org/abs/1408.5882)
