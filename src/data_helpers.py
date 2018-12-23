@@ -1,8 +1,9 @@
 #! /usr/bin/env python
-from tokenizer import Tokenizer
+import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer as CV
 from tqdm import tqdm
-import numpy as np
+
+from tokenizer import Tokenizer
 
 
 def load_data_and_labels(tweets):

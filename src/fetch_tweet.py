@@ -2,12 +2,12 @@
 twitter.com/anyuser/status/541278904204668929
 """
 
+import os
+
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 from tqdm import tqdm
-import os
-from joblib import Parallel, delayed
 
 BASE_URL = 'https://twitter.com/anyuser/status'
 

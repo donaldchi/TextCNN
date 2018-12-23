@@ -1,16 +1,14 @@
 #! /usr/bin/env python
-import tensorflow as tf
-import numpy as np
-import os
-import time
 import datetime
+import os
+import pickle
+import time
+
+import tensorflow as tf
+from sklearn.model_selection import KFold
+
 import data_helpers
 from text_cnn import TextCNN
-from tensorflow.contrib import learn
-import feather
-import pickle
-import pandas as pd
-from sklearn.model_selection import KFold
 
 # Parameters
 # ==================================================

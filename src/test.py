@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-from joblib import Parallel, delayed
 from time import time
+
+from joblib import Parallel, delayed
+
 
 def process(n):
     return sum([i*n for i in range(100000)])

@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 import MeCab
-from sklearn.feature_extraction.text import CountVectorizer
 
 
 class Tokenizer:

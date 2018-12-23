@@ -1,11 +1,13 @@
 #! /usr/bin/env python
-import pandas as pd
-from data_helpers import load_data_and_labels
-from tensorflow.contrib import learn
-import numpy as np
-from gensim.models import KeyedVectors
-from tqdm import tqdm
 import pickle
+
+import numpy as np
+import pandas as pd
+from gensim.models import KeyedVectors
+from tensorflow.contrib import learn
+from tqdm import tqdm
+
+from data_helpers import load_data_and_labels
 
 
 def load_data():

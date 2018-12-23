@@ -1,15 +1,9 @@
 #! /usr/bin/env python
-import tensorflow as tf
-import numpy as np
 import os
-import time
-import datetime
-import data_helpers
-from text_cnn import TextCNN
-from tensorflow.contrib import learn
 import pickle
-import pandas as pd
 
+import tensorflow as tf
+from tensorflow.contrib import learn
 
 # Parameters
 # ==================================================
