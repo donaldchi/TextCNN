@@ -183,11 +183,10 @@ def train(x, y, x_test, y_test, vocab_processor, pre_embedding):
                 }
 
             predictions = sess.run([cnn.predictions], feed_dict)
-            predictions, scores, input_y, W = sess.run([cnn.predictions, cnn.scores, cnn.input_y, cnn.W], feed_dict)
+            predictions, scores, input_y= sess.run([cnn.predictions, cnn.scores, cnn.input_y], feed_dict)
             pickle.dump(scores, open(os.path.join(checkpoint_dir, 'scores.pkl'), 'wb'))
             pickle.dump(predictions, open(os.path.join(checkpoint_dir, 'predictions.pkl'), 'wb'))
             pickle.dump(input_y, open(os.path.join(checkpoint_dir, 'input_y.pkl'), 'wb'))
-            pickle.dump(input_y, open(os.path.join(checkpoint_dir, 'W.pkl'), 'wb'))
 
             # save model
             current_step = tf.train.global_step(sess, global_step)
