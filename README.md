@@ -39,6 +39,7 @@ python pred.py --checkpoint_number 1545587316
 - tqdm
 - gensim
 - sklearn
+- beautifulsoup4
 
 # DataSet
 - [Twitter日本語評判分析データセット](http://bigdata.naist.jp/~ysuzuki/data/twitter/)
