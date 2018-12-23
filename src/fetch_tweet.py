@@ -1,7 +1,4 @@
-"""
-twitter.com/anyuser/status/541278904204668929
-"""
-
+#! /usr/bin/env python
 import os
 
 import pandas as pd
@@ -18,6 +15,9 @@ def load_statuses():
 
 
 def fetch_tweets(tweet_statuses):
+    """
+    twitter.com/anyuser/status/541278904204668929
+    """
     file_name_with_path = '../data/tweets.csv'
     if os.path.exists(file_name_with_path):
         f = open(file_name_with_path, 'a')
@@ -45,7 +45,6 @@ def fetch_tweets(tweet_statuses):
 
 
 def main():
-    print('main')
     tweet_statuses = load_statuses()
     fetch_tweets(tweet_statuses)
 
