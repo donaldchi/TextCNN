@@ -17,12 +17,13 @@ import pandas as pd
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size", 1000, "Batch Size (default: 1000)")
 tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
-tf.flags.DEFINE_boolean("eval_unknown", False, "Evaluate on all training data")
+tf.flags.DEFINE_boolean("eval_unknown", False, "Evaluate on unknown data")
 tf.flags.DEFINE_string("checkpoint_number", "", "created after eatch run")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 
+FLAGS = tf.flags.FLAGS
 
 # CHANGE THIS: Load data. Load your own data here
 if FLAGS.eval_unknown:
@@ -62,6 +63,7 @@ with graph.as_default():
 
         # Tensors we want to evaluate
         predictions = graph.get_operation_by_name("output/predictions").outputs[0]
+        accuracy = graph.get_operation_by_name("accuracy/accuracy").outputs[0]
 
         feed_dict = {
                 input_x: x_test,
@@ -69,8 +71,9 @@ with graph.as_default():
                 dropout_keep_prob: 1.0
         }
 
-        predictions = sess.run([predictions], feed_dict)
+        predictions, accuracy = sess.run([predictions, accuracy], feed_dict)
 
 # Print accuracy if y_test is defined
+print('Accuracy: ', accuracy)
 print('save prediction results')
-pickle.dump(predictions[0], open('../data/pred_raw.pkl', 'wb'))
+pickle.dump(predictions[0], open('../data/pred.pkl', 'wb'))
