@@ -25,6 +25,11 @@ python train.py --num_epochs 10  --evaluate_every  10 --use_pretrained_embedding
 python train.py --num_epochs 10  --evaluate_every  10 --use_multi_channel
 ```
 
+- for prediction
+```
+python pred.py --checkpoint_number 1545587316
+```
+
 # Requirements
 - Python 3.6
 - TensorFlow 1.8
