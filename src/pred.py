@@ -3,11 +3,12 @@ import argparse
 import os
 import pickle
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import learn
+
 from model_config import PRED_CONFIG
 from text_cnn import load_model
-import numpy as np
 
 
 def load_data(eval_unknown, data_dir, model_dir, model_number):
