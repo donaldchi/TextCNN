@@ -140,3 +140,20 @@ def build_model(model_config):
     )
 
     return model
+
+
+def load_model(checkpoint_dir):
+    checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
+    graph = tf.Graph()
+    with graph.as_default():
+        session_conf = tf.ConfigProto(
+            allow_soft_placement=True,
+            log_device_placement=False)
+        sess = tf.Session(config=session_conf)
+        with sess.as_default():
+            # Load the saved meta graph and restore variables
+            saver = tf.train.import_meta_graph("{}.meta".format(
+                checkpoint_file))
+            saver.restore(sess, checkpoint_file)
+
+            return sess

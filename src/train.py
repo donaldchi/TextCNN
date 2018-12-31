@@ -9,8 +9,8 @@ import tensorflow as tf
 from sklearn.model_selection import KFold
 
 from data_helpers import batch_iter
-from text_cnn import build_model
 from model_config import DEFAULT_CONFIG
+from text_cnn import build_model
 
 
 def _define_model_config(data, pre_embedding, config):
@@ -59,7 +59,7 @@ def train(data, pre_embedding, config, output_dir):
 
             # Output directory for models and summaries
             timestamp = str(int(time.time()))
-            out_dir = os.path.join(os.path.curdir, "runs", timestamp)
+            out_dir = os.path.join(output_dir, timestamp)
             print("Writing to {}\n".format(out_dir))
 
             # Summaries for loss and accuracy

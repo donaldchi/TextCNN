@@ -15,3 +15,9 @@ DEFAULT_CONFIG = {
     "allow_soft_placement": True,  # Allow device soft device placement
     "log_device_placement": False  # Log placement of ops on devices
 }
+
+PRED_CONFIG = {
+    "model_dir": '../model',
+    "model_number": '',
+    "eval_unknown": 0   # 1: True, 0: False
+}

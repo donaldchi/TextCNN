@@ -1,73 +1,96 @@
 #! /usr/bin/env python
+import argparse
 import os
 import pickle
 
 import tensorflow as tf
 from tensorflow.contrib import learn
+from model_config import PRED_CONFIG
+from text_cnn import load_model
+import numpy as np
 
-# Parameters
-# ==================================================
 
-# Eval Parameters
-tf.flags.DEFINE_integer("batch_size", 1000, "Batch Size (default: 1000)")
-tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
-tf.flags.DEFINE_boolean("eval_unknown", False, "Evaluate on unknown data")
-tf.flags.DEFINE_string("checkpoint_number", "", "created after eatch run")
-# Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+def load_data(eval_unknown, data_dir, model_dir, model_number):
+    # CHANGE THIS: Load data. Load your own data here
+    if eval_unknown:
+        x_test = pickle.load(
+            open('{}/unknown_sample.pkl'.format(data_dir), 'rb'))
+        num_classes = 5
+        y_test = np.random.rand(len(x_test), num_classes)
+    else:
+        x_test = pickle.load(open('{}/test_vec.pkl'.format(data_dir), 'rb'))
+        y_test = pickle.load(open('{}/test_y.pkl'.format(data_dir), 'rb'))
 
-FLAGS = tf.flags.FLAGS
+    # Map data into vocabulary
+    # vocab_processor is needed while preprocess unknonw text data
+    # preprocess: convert text to vector
+    vocab_dir = '{}/{}'.format(model_dir, model_number)
+    vocab_path = os.path.join(vocab_dir, "vocab")
+    vocab_processor = learn.preprocessing.VocabularyProcessor.restore(
+        vocab_path)
 
-# CHANGE THIS: Load data. Load your own data here
-if FLAGS.eval_unknown:
-    x_test = pickle.load(open('../data/unknown_sample.pkl', 'rb'))
-    num_classes = 5
-    y_test = np.random.rand(len(x_test), num_classes)
-else:
-    x_test = pickle.load(open('../data/test_vec.pkl', 'rb'))
-    y_test = pickle.load(open('../data/test_y.pkl', 'rb'))
+    return x_test, y_test, vocab_processor
 
-# Map data into vocabulary
-FLAGS.checkpoint_dir = 'runs/{}/checkpoints'.format(FLAGS.checkpoint_number)
-vocab_dir = 'runs/{}'.format(FLAGS.checkpoint_number)
-vocab_path = os.path.join(vocab_dir, "vocab")
-vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
 
-print("\nEvaluating...\n", vocab_dir)
+def prediction(model, x_test, y_test):
+    input_x = model.graph.get_operation_by_name("input_x").outputs[0]
+    input_y = model.graph.get_operation_by_name("input_y").outputs[0]
+    dropout_keep_prob = model.graph.get_operation_by_name(
+        "dropout_keep_prob").outputs[0]
 
-# Evaluation
-# ==================================================
-checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-graph = tf.Graph()
-with graph.as_default():
-    session_conf = tf.ConfigProto(
-      allow_soft_placement=FLAGS.allow_soft_placement,
-      log_device_placement=FLAGS.log_device_placement)
-    sess = tf.Session(config=session_conf)
-    with sess.as_default():
-        # Load the saved meta graph and restore variables
-        saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
-        saver.restore(sess, checkpoint_file)
+    # Tensors we want to evaluate
+    predictions = model.graph.get_operation_by_name(
+        "output/predictions").outputs[0]
+    accuracy = model.graph.get_operation_by_name(
+        "accuracy/accuracy").outputs[0]
 
-        # Get the placeholders from the graph by name
-        input_x = graph.get_operation_by_name("input_x").outputs[0]
-        input_y = graph.get_operation_by_name("input_y").outputs[0]
-        dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+    feed_dict = {
+            input_x: x_test,
+            input_y: y_test,
+            dropout_keep_prob: 1.0
+    }
 
-        # Tensors we want to evaluate
-        predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-        accuracy = graph.get_operation_by_name("accuracy/accuracy").outputs[0]
+    predictions, accuracy = model.run([predictions, accuracy], feed_dict)
+    return predictions[0], accuracy
 
-        feed_dict = {
-                input_x: x_test,
-                input_y: y_test,
-                dropout_keep_prob: 1.0
-        }
 
-        predictions, accuracy = sess.run([predictions, accuracy], feed_dict)
+def parse_command_line():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('data_dir')
+    parser.add_argument('output_dir')
 
-# Print accuracy if y_test is defined
-print('Accuracy: ', accuracy)
-print('save prediction results')
-pickle.dump(predictions[0], open('../data/pred.pkl', 'wb'))
+    for k, v in PRED_CONFIG.items():
+        arg_type = type(v)
+        parser.add_argument('--' + k, default=v, type=arg_type)
+
+    args = parser.parse_args()
+    config = dict()
+
+    # Make the model configuration modifiable from the command line
+    for k in PRED_CONFIG.keys():
+        config[k] = getattr(args, k)
+
+    return args, config
+
+
+def main():
+    args, config = parse_command_line()
+    x_test, y_test, vocab_processor = load_data(
+        args.eval_unknown, args.data_dir, args.model_dir, args.model_number)
+
+    model_dir = '{}/{}/checkpoints'.format(args.model_dir, args.model_number)
+    model = load_model(model_dir)
+
+    pred, accuracy = prediction(model, x_test, y_test)
+
+    # Print accuracy if y_test is defined
+    if not config["eval_unknown"]:
+        print('Accuracy: ', accuracy)
+    print('save prediction results')
+    if not os.path.isdir(args.output_dir):
+        os.mkdir(args.output_dir)
+    pickle.dump(pred, open('{}/pred.pkl'.format(args.output_dir), 'wb'))
+
+
+if __name__ == "__main__":
+    main()
