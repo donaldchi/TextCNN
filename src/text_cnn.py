@@ -123,3 +123,20 @@ class TextCNN(object):
         with tf.name_scope("accuracy"):
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+
+
+def build_model(model_config):
+    model = TextCNN(
+        sequence_length=model_config['sequence_length'],
+        num_classes=model_config['num_classes'],
+        vocab_size=model_config['vocab_size'],
+        embedding_size=model_config['embedding_size'],
+        filter_sizes=model_config['filter_sizes'],
+        num_filters=model_config['num_filters'],
+        l2_reg_lambda=model_config['l2_reg_lambda'],
+        use_pretrained_embedding=model_config['use_pretrained_embedding'],
+        pre_embedding=model_config['pre_embedding'],
+        use_multi_channel=model_config['use_multi_channel']
+    )
+
+    return model

@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import argparse
 import datetime
 import os
 import pickle
@@ -7,61 +8,38 @@ import time
 import tensorflow as tf
 from sklearn.model_selection import KFold
 
-import data_helpers
-from text_cnn import TextCNN
-
-# Parameters
-# ==================================================
-
-# Data loading params
-tf.flags.DEFINE_string('data_dir', '../data/', "Specify data directory (default: ../data/)")
-
-# Model Hyperparameters
-tf.flags.DEFINE_integer("embedding_dim", 200, "Dimensionality of character embedding (default: 200)")
-tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
-tf.flags.DEFINE_float("l2_reg_lambda", 0, "L2 regularization lambda (default: 0.0)")
-
-# Training parameters
-tf.flags.DEFINE_integer("batch_size", 1000, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
-tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
-tf.flags.DEFINE_bool('use_k_fold', False, "Use k-fold cross-validation while training (default: False)")
-tf.flags.DEFINE_bool('use_multi_channel', False, "Use multi channels (default: True)")
-tf.flags.DEFINE_bool('use_pretrained_embedding', False, "Use pretrained embedding models, ex. word2vec (default: True)")
-
-# Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-
-FLAGS = tf.flags.FLAGS
+from data_helpers import batch_iter
+from text_cnn import build_model
+from model_config import DEFAULT_CONFIG
 
 
-def train(x, y, x_test, y_test, vocab_processor, pre_embedding):
+def _define_model_config(data, pre_embedding, config):
+    return {
+        "sequence_length": data['x_train'].shape[1],
+        "num_classes": data['y_train'].shape[1],
+        "vocab_size": len(data['vocab_processor'].vocabulary_),
+        "embedding_size": config['embedding_dim'],
+        "filter_sizes": list(map(int, config['filter_sizes'].split(","))),
+        "num_filters": config['num_filters'],
+        "l2_reg_lambda": config['l2_reg_lambda'],
+        "use_pretrained_embedding": config['use_pretrained_embedding'],
+        "pre_embedding": pre_embedding,
+        "use_multi_channel": config['use_multi_channel']
+    }
+
+
+def train(data, pre_embedding, config, output_dir):
+    # x, y, x_test, y_test, vocab_processor
     # Training
     # ==================================================
-    print('filter_size: ', FLAGS.filter_sizes)
     with tf.Graph().as_default():
         session_conf = tf.ConfigProto(
-          allow_soft_placement=FLAGS.allow_soft_placement,
-          log_device_placement=FLAGS.log_device_placement)
+          allow_soft_placement=config['allow_soft_placement'],
+          log_device_placement=config['log_device_placement'])
         sess = tf.Session(config=session_conf)
         with sess.as_default():
-            cnn = TextCNN(
-                sequence_length=x.shape[1],
-                num_classes=y.shape[1],
-                vocab_size=len(vocab_processor.vocabulary_),
-                embedding_size=FLAGS.embedding_dim,
-                filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
-                num_filters=FLAGS.num_filters,
-                l2_reg_lambda=FLAGS.l2_reg_lambda,
-                use_pretrained_embedding=FLAGS.use_pretrained_embedding,
-                pre_embedding=pre_embedding,
-                use_multi_channel=FLAGS.use_multi_channel
-                )
+            model_config = _define_model_config(data, pre_embedding, config)
+            cnn = build_model(model_config)
 
             # Define Training procedure
             global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -81,7 +59,7 @@ def train(x, y, x_test, y_test, vocab_processor, pre_embedding):
 
             # Output directory for models and summaries
             timestamp = str(int(time.time()))
-            out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+            out_dir = os.path.join(os.path.curdir, "runs", timestamp)
             print("Writing to {}\n".format(out_dir))
 
             # Summaries for loss and accuracy
@@ -99,14 +77,14 @@ def train(x, y, x_test, y_test, vocab_processor, pre_embedding):
             dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
             # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
-            checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+            checkpoint_dir = os.path.join(out_dir, "checkpoints")
             checkpoint_prefix = os.path.join(checkpoint_dir, "model")
             if not os.path.exists(checkpoint_dir):
                 os.makedirs(checkpoint_dir)
-            saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
+            saver = tf.train.Saver(tf.global_variables(), max_to_keep=config['num_checkpoints'])
 
             # Write vocabulary
-            vocab_processor.save(os.path.join(out_dir, "vocab"))
+            data['vocab_processor'].save(os.path.join(out_dir, "vocab"))
 
             # Initialize all variables
             sess.run(tf.global_variables_initializer())
@@ -118,7 +96,7 @@ def train(x, y, x_test, y_test, vocab_processor, pre_embedding):
                 feed_dict = {
                   cnn.input_x: x_batch,
                   cnn.input_y: y_batch,
-                  cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
+                  cnn.dropout_keep_prob: config['dropout_keep_prob']
                 }
 
                 _, step, summaries, loss, accuracy = sess.run(
@@ -158,27 +136,34 @@ def train(x, y, x_test, y_test, vocab_processor, pre_embedding):
                         dev_step(x_dev, y_dev, writer=dev_summary_writer)
 
             # Generate batches
-            use_k_fold = FLAGS.use_k_fold
+            use_k_fold = config['use_k_fold']
             if use_k_fold:
                 kf = KFold(n_splits=10)
                 fold_size = kf.get_n_splits() - 1
                 for train_idx, dev_idx in kf.split(x, y):
-                    x_train, x_dev = x[train_idx], x[dev_idx]
-                    y_train, y_dev = y[train_idx], y[dev_idx]
+                    x_train = data['x_train'][train_idx]
+                    x_dev = data['x_test'][dev_idx]
+
+                    y_train = data['y_train'][train_idx]
+                    y_dev = data['y_test'][dev_idx]
 
                     # Generate batches
-                    batches = data_helpers.batch_iter(
-                        list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+                    batches = batch_iter(
+                        list(zip(x_train, y_train)), config['batch_size'], config['num_epochs'])
                     # Training loop. For each batch...
                     train_with_batch(saver, batches, x_dev, y_dev, fold_size, fold_size, checkpoint_prefix)
             else:
-                batches = data_helpers.batch_iter(list(zip(x, y)), FLAGS.batch_size, FLAGS.num_epochs)
-                train_with_batch(saver, batches, x_test, y_test, FLAGS.evaluate_every, FLAGS.checkpoint_every, checkpoint_prefix)
-
+                batches = batch_iter(
+                    list(zip(data['x_train'], data['y_train'])),
+                    config['batch_size'], config['num_epochs'])
+                train_with_batch(
+                    saver, batches, data['x_test'], data['y_test'],
+                    config['evaluate_every'], config['checkpoint_every'],
+                    checkpoint_prefix)
                 # save predict results
                 feed_dict = {
-                    cnn.input_x: x_test,
-                    cnn.input_y: y_test,
+                    cnn.input_x: data['x_test'],
+                    cnn.input_y: data['y_test'],
                     cnn.dropout_keep_prob: 1.0
                 }
 
@@ -196,24 +181,62 @@ def train(x, y, x_test, y_test, vocab_processor, pre_embedding):
             print("Saved model checkpoint to {}\n".format(path))
 
 
+def load_data(path):
+    # load data for training
+    x_train = pickle.load(open(os.path.join(path, 'train_vec.pkl'), 'rb'))
+    y_train = pickle.load(open(os.path.join(path, 'train_y.pkl'), 'rb'))
+    x_test = pickle.load(open(os.path.join(path, 'test_vec.pkl'), 'rb'))
+    y_test = pickle.load(open(os.path.join(path, 'test_y.pkl'), 'rb'))
+
+    # load for computing precision / recall
+    path = os.path.join(path, 'vocab_processor.pkl')
+    vocab_processor = pickle.load(open(path, 'rb'))
+
+    data = {
+        'x_train': x_train,
+        'y_train': y_train,
+        'x_test': x_test,
+        'y_test': y_test,
+        'vocab_processor': vocab_processor,
+    }
+    return data
+
+
+def parse_command_line():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('data_dir')
+    parser.add_argument('output_dir')
+    parser.add_argument('--verbose', action='store_true')
+
+    for k, v in DEFAULT_CONFIG.items():
+        arg_type = type(v)
+        parser.add_argument('--' + k, default=v, type=arg_type)
+
+    args = parser.parse_args()
+    config = dict()
+
+    # Make the model configuration modifiable from the command line
+    for k in DEFAULT_CONFIG.keys():
+        config[k] = getattr(args, k)
+
+    return args, config
+
+
 def main(argv=None):
-    if FLAGS.use_pretrained_embedding or FLAGS.use_multi_channel:
-        pre_embedding = pickle.load(open('../data/pre_embedding.pkl', 'rb'))
+    args, config = parse_command_line()
+
+    if args.verbose:
+        print('Loading data ...')
+
+    if config['use_pretrained_embedding'] or config['use_multi_channel']:
+        path = os.path.join(args.data_dir, 'pre_embedding.pkl')
+        pre_embedding = pickle.load(open(path, 'rb'))
     else:
         pre_embedding = None
-    # load data for training
-    x_train = pickle.load(
-        open(os.path.join(FLAGS.data_dir, 'train_vec.pkl'), 'rb'))
-    y_train = pickle.load(
-        open(os.path.join(FLAGS.data_dir, 'train_y.pkl'), 'rb'))
-    x_test = pickle.load(
-        open(os.path.join(FLAGS.data_dir, 'test_vec.pkl'), 'rb'))
-    y_test = pickle.load(
-        open(os.path.join(FLAGS.data_dir, 'test_y.pkl'), 'rb'))
-    vocab_processor = pickle.load(
-        open(os.path.join(FLAGS.data_dir, 'vocab_processor.pkl'), 'rb'))
 
-    checkpoint_dir = train(x_train, y_train, x_test, y_test, vocab_processor, pre_embedding)
+    data = load_data(args.data_dir)
+
+    checkpoint_dir = train(data, pre_embedding, config, args.output_dir)
 
 
 if __name__ == '__main__':
