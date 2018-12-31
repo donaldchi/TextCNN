@@ -5,12 +5,12 @@ import tensorflow as tf
 class TextCNN(object):
     """
     A CNN for text classification.
-    Uses an embedding layer, 
+    Uses an embedding layer,
     followed by a convolutional, max-pooling and softmax layer.
     """
     def __init__(
       self, sequence_length, num_classes, vocab_size,
-      embedding_size, filter_sizes, num_filters, l2_reg_lambda, 
+      embedding_size, filter_sizes, num_filters, l2_reg_lambda,
       use_pretrained_embedding, pre_embedding, use_multi_channel):
 
         # Placeholders for input, output and dropout
@@ -96,8 +96,8 @@ class TextCNN(object):
                 b = tf.Variable(
                     tf.constant(0.1, shape=[num_filters]), name="b")
                 conv = tf.nn.conv2d(
-                    self.embedded_chars_expanded, # signal
-                    W,  # kernel
+                    self.embedded_chars_expanded,
+                    W,
                     strides=[1, 1, 1, 1],
                     padding="VALID",
                     name="conv")
