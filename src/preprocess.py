@@ -115,7 +115,8 @@ def split_data(tweets, tweets_vec, tweets_y):
         test_y.append(tweetid_y[tweet_id])
     print(len(train_vec), len(train_y), len(test_vec), len(test_y))
 
-    return np.array(train_vec), np.array(train_y), np.array(test_vec), np.array(test_y)
+    return np.array(train_vec), np.array(train_y),
+    np.array(test_vec), np.array(test_y)
 
 
 def save_data(
@@ -139,7 +140,8 @@ def main():
 
     pre_embedding = embedding_words_with_pretrained_model(vocab_dict)
 
-    train_vec, train_y, test_vec, test_y = split_data(tweets, tweets_vec, tweets_y)
+    train_vec, train_y, test_vec, test_y = split_data(
+        tweets, tweets_vec, tweets_y)
 
     save_data(
         pre_embedding, vocab_processor, vocab_dict,
