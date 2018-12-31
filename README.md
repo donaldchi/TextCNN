@@ -7,27 +7,27 @@ It is a full implementation by Tensorflow including multi channels, cross-valida
 
 - train with single channel, random initialization
 ```
-python train.py --num_epochs 10  --evaluate_every 10
+python train.py --num_epochs 1  --evaluate_every  10 ../data/ ../model/
 ```
 
 - train with single channel, pretrained embedding initialization
 ```
-python train.py --num_epochs 10  --evaluate_every  10 --use_pretrained_embedding
+python train.py --num_epochs 1  --evaluate_every  10 --use_pretrained_embedding True ../data/ ../model/
 ```
 
 - train with multi channel, pretrained embedding initialization both
 ```
-python train.py --num_epochs 10  --evaluate_every  10 --use_pretrained_embedding --use_multi_channel
+python train.py --num_epochs 1  --evaluate_every  10 --use_pretrained_embedding True --use_multi_channel True ../data/ ../model/
 ```
 
 - train with multi channel, pretrained embedding initialization and random initialization
 ```
-python train.py --num_epochs 10  --evaluate_every  10 --use_multi_channel
+python train.py --num_epochs 1  --evaluate_every  10 --use_multi_channel True ../data/ ../model/
 ```
 
 - for prediction
 ```
-python pred.py --checkpoint_number 1545587316
+python pred.py --model_dir ../model/ --model_number 1546229209  ../data/ ../result --eval_unknown 0
 ```
 
 # Requirements
